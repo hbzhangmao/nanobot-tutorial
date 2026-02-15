@@ -32,13 +32,23 @@ a:hover{text-decoration:underline}
 .main li{margin-bottom:6px}
 
 /* 代码块 */
-.code-block{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin:14px 0 20px;overflow-x:auto;font-family:'Fira Code',Consolas,monospace;font-size:13.5px;line-height:1.6}
+.code-block{position:relative;background:var(--bg3);border:1px solid var(--border);border-radius:10px;margin:14px 0 20px;overflow:hidden}
+.code-block pre{margin:0;padding:18px 20px;overflow-x:auto;font-family:'Fira Code','JetBrains Mono',Consolas,'Courier New',monospace;font-size:13.5px;line-height:1.75;white-space:pre;color:var(--text);-webkit-overflow-scrolling:touch}
 .code-block .kw{color:var(--purple)}
 .code-block .fn{color:var(--accent)}
 .code-block .str{color:var(--green)}
-.code-block .cmt{color:var(--text2)}
+.code-block .cmt{color:#6a7080;font-style:italic}
 .code-block .cls{color:var(--yellow)}
 .code-block .op{color:var(--pink)}
+.code-block .num{color:var(--orange)}
+.code-block .dec{color:var(--pink)}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);font-size:12px;color:var(--text2)}
+.code-header .lang{font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.copy-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--text2);padding:3px 10px;font-size:11px;cursor:pointer;transition:all .2s}
+.copy-btn:hover{color:var(--accent);border-color:var(--accent)}
+.copy-btn.copied{color:var(--green);border-color:var(--green)}
+.code-header .file-path{color:var(--text2);font-size:11px;margin-left:8px;font-style:italic}
+code{background:rgba(96,165,250,.1);color:var(--accent);padding:2px 7px;border-radius:4px;font-family:'Fira Code','JetBrains Mono',Consolas,monospace;font-size:0.88em}
 
 /* 标签 */
 .tag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;margin:2px 4px 2px 0}
@@ -87,10 +97,14 @@ tr:hover td{background:rgba(96,165,250,.04)}
 .card-title{color:#fff;font-weight:700;margin-bottom:8px}
 
 /* 树形结构 */
-.tree{font-family:'Fira Code',Consolas,monospace;font-size:13px;line-height:1.8;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:20px;margin:14px 0;overflow-x:auto}
-.tree .dir{color:var(--yellow)}
+.tree{position:relative;background:var(--bg3);border:1px solid var(--border);border-radius:10px;margin:14px 0;overflow:hidden}
+.tree .tree-header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);font-size:12px;color:var(--text2)}
+.tree .tree-header .lang{font-weight:600;letter-spacing:.5px}
+.tree pre{margin:0;padding:18px 20px;overflow-x:auto;font-family:'Fira Code','JetBrains Mono',Consolas,'Courier New',monospace;font-size:13px;line-height:1.85;white-space:pre;color:var(--text);-webkit-overflow-scrolling:touch}
+.tree .dir{color:var(--yellow);font-weight:600}
 .tree .file{color:var(--text)}
-.tree .desc{color:var(--text2)}
+.tree .desc{color:#6a7080;font-style:italic}
+.tree .connector{color:var(--border)}
 
 /* 手机菜单按钮 */
 .menu-btn{display:none;position:fixed;top:12px;left:12px;z-index:200;width:40px;height:40px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);color:#fff;font-size:20px;cursor:pointer;align-items:center;justify-content:center}
@@ -218,8 +232,8 @@ footer{margin-top:60px;padding:20px 0;border-top:1px solid var(--border);color:v
   </ul>
 </div>
 <div class="code-block">
-<span class="cmt"># bus/events.py</span>
-<span class="kw">@dataclass</span>
+<div class="code-header"><span class="lang">Python</span><span class="file-path">bus/events.py</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+<pre><span class="dec">@dataclass</span>
 <span class="kw">class</span> <span class="cls">InboundMessage</span>:
     channel: <span class="cls">str</span>          <span class="cmt"># "telegram", "feishu", ...</span>
     chat_id: <span class="cls">str</span>          <span class="cmt"># 用户/群组标识</span>
@@ -227,11 +241,11 @@ footer{margin-top:60px;padding:20px 0;border-top:1px solid var(--border);color:v
     attachments: <span class="cls">list</span>     <span class="cmt"># 图片、文件等附件</span>
     metadata: <span class="cls">dict</span>        <span class="cmt"># 额外元数据</span>
 
-<span class="kw">@dataclass</span>
+<span class="dec">@dataclass</span>
 <span class="kw">class</span> <span class="cls">OutboundMessage</span>:
     channel: <span class="cls">str</span>
     chat_id: <span class="cls">str</span>
-    text: <span class="cls">str</span>
+    text: <span class="cls">str</span></pre>
 </div>
 
 <!-- Agent 循环 -->
@@ -257,8 +271,8 @@ footer{margin-top:60px;padding:20px 0;border-top:1px solid var(--border);color:v
 </div>
 
 <div class="code-block">
-<span class="cmt"># agent/loop.py — 核心循环简化版</span>
-<span class="kw">async def</span> <span class="fn">_process_message</span>(self, msg: InboundMessage):
+<div class="code-header"><span class="lang">Python</span><span class="file-path">agent/loop.py — 核心循环简化版</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+<pre><span class="kw">async def</span> <span class="fn">_process_message</span>(self, msg: InboundMessage):
     session = self.session_mgr.<span class="fn">get_or_create</span>(msg.channel, msg.chat_id)
     session.<span class="fn">append</span>({<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: msg.text})
 
@@ -271,7 +285,7 @@ footer{margin-top:60px;padding:20px 0;border-top:1px solid var(--border);color:v
                 result = <span class="kw">await</span> self.tools.<span class="fn">execute</span>(tc.name, tc.args)
                 session.<span class="fn">append</span>({<span class="str">"role"</span>: <span class="str">"tool"</span>, <span class="str">"content"</span>: result})
         <span class="kw">else</span>:
-            <span class="kw">return</span> response.text  <span class="cmt"># 最终响应</span>
+            <span class="kw">return</span> response.text  <span class="cmt"># 最终响应</span></pre>
 </div>
 
 <!-- 上下文构建 -->
@@ -318,11 +332,11 @@ footer{margin-top:60px;padding:20px 0;border-top:1px solid var(--border);color:v
 <p>渠道系统采用<strong>策略模式</strong>，所有渠道实现统一的 BaseChannel 接口，由 ChannelManager 统一管理生命周期。</p>
 
 <div class="code-block">
-<span class="cmt"># channels/base.py</span>
-<span class="kw">class</span> <span class="cls">BaseChannel</span>(ABC):
+<div class="code-header"><span class="lang">Python</span><span class="file-path">channels/base.py</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+<pre><span class="kw">class</span> <span class="cls">BaseChannel</span>(ABC):
     <span class="kw">async def</span> <span class="fn">start</span>(self): ...    <span class="cmt"># 启动渠道（建立连接）</span>
     <span class="kw">async def</span> <span class="fn">stop</span>(self): ...     <span class="cmt"># 停止渠道</span>
-    <span class="kw">async def</span> <span class="fn">send</span>(self, msg): ... <span class="cmt"># 发送消息给用户</span>
+    <span class="kw">async def</span> <span class="fn">send</span>(self, msg): ... <span class="cmt"># 发送消息给用户</span></pre>
 </div>
 
 <table>
@@ -379,14 +393,14 @@ footer{margin-top:60px;padding:20px 0;border-top:1px solid var(--border);color:v
 </div>
 
 <div class="code-block">
-<span class="cmt"># 技能目录结构</span>
-skills/
+<div class="code-header"><span class="lang">目录结构</span><span class="file-path">技能目录规范</span></div>
+<pre>skills/
 ├── my-skill/
 │   ├── SKILL.md          <span class="cmt"># 技能说明（必须）</span>
 │   ├── scripts/          <span class="cmt"># 可执行脚本</span>
 │   │   └── run.py
 │   ├── references/       <span class="cmt"># 参考文档</span>
-│   └── assets/           <span class="cmt"># 资源文件</span>
+│   └── assets/           <span class="cmt"># 资源文件</span></pre>
 </div>
 
 <p>技能分为两类：<strong>内置技能</strong>（随 pip 包安装）和 <strong>workspace 自定义技能</strong>（用户创建）。当两者同名时，workspace 技能优先。内置技能包括：</p>
@@ -490,7 +504,8 @@ skills/
 <p>NanoBot 使用 <strong>Pydantic</strong> 模型进行配置验证，所有配置集中在 <code>~/.nanobot/config.json</code>。</p>
 
 <div class="code-block">
-{
+<div class="code-header"><span class="lang">JSON</span><span class="file-path">~/.nanobot/config.json</span><button class="copy-btn" onclick="copyCode(this)">复制</button></div>
+<pre>{
   <span class="str">"providers"</span>: {           <span class="cmt">// LLM 提供商配置</span>
     <span class="str">"anthropic"</span>: {
       <span class="str">"api_key"</span>: <span class="str">"sk-..."</span>,
@@ -500,21 +515,21 @@ skills/
   <span class="str">"agents"</span>: {
     <span class="str">"defaults"</span>: {
       <span class="str">"model"</span>: <span class="str">"anthropic/claude-opus-4-5"</span>,
-      <span class="str">"max_tokens"</span>: <span class="cls">8192</span>,
-      <span class="str">"temperature"</span>: <span class="cls">0.7</span>,
-      <span class="str">"max_tool_iterations"</span>: <span class="cls">20</span>,
-      <span class="str">"memory_window"</span>: <span class="cls">50</span>
+      <span class="str">"max_tokens"</span>: <span class="num">8192</span>,
+      <span class="str">"temperature"</span>: <span class="num">0.7</span>,
+      <span class="str">"max_tool_iterations"</span>: <span class="num">20</span>,
+      <span class="str">"memory_window"</span>: <span class="num">50</span>
     }
   },
   <span class="str">"channels"</span>: {             <span class="cmt">// 渠道配置（按需启用）</span>
-    <span class="str">"feishu"</span>: { <span class="str">"enabled"</span>: <span class="cls">true</span>, <span class="str">"app_id"</span>: <span class="str">"..."</span>, <span class="str">"app_secret"</span>: <span class="str">"..."</span> },
-    <span class="str">"telegram"</span>: { <span class="str">"enabled"</span>: <span class="cls">false</span>, <span class="str">"token"</span>: <span class="str">"..."</span> }
+    <span class="str">"feishu"</span>: { <span class="str">"enabled"</span>: <span class="num">true</span>, <span class="str">"app_id"</span>: <span class="str">"..."</span>, <span class="str">"app_secret"</span>: <span class="str">"..."</span> },
+    <span class="str">"telegram"</span>: { <span class="str">"enabled"</span>: <span class="num">false</span>, <span class="str">"token"</span>: <span class="str">"..."</span> }
   },
   <span class="str">"tools"</span>: {
-    <span class="str">"exec"</span>: { <span class="str">"timeout"</span>: <span class="cls">60</span> },
-    <span class="str">"restrict_to_workspace"</span>: <span class="cls">false</span>
+    <span class="str">"exec"</span>: { <span class="str">"timeout"</span>: <span class="num">60</span> },
+    <span class="str">"restrict_to_workspace"</span>: <span class="num">false</span>
   }
-}
+}</pre>
 </div>
 
 <p>支持环境变量覆盖：使用 <code>NANOBOT_</code> 前缀 + <code>__</code> 嵌套分隔符。例如 <code>NANOBOT_CHANNELS__FEISHU__ENABLED=true</code>。</p>
@@ -522,75 +537,76 @@ skills/
 <!-- 项目结构 -->
 <h2 id="structure">项目结构</h2>
 <div class="tree">
-<span class="dir">nanobot/</span>
-├── <span class="file">__init__.py</span>              <span class="desc"># 版本号、Logo</span>
-├── <span class="file">__main__.py</span>              <span class="desc"># 入口 → cli.commands</span>
-│
-├── <span class="dir">cli/</span>
-│   └── <span class="file">commands.py</span>          <span class="desc"># Typer CLI + prompt_toolkit REPL</span>
-│
-├── <span class="dir">config/</span>
-│   ├── <span class="file">loader.py</span>            <span class="desc"># 加载 config.json</span>
-│   └── <span class="file">schema.py</span>            <span class="desc"># Pydantic 配置模型</span>
-│
-├── <span class="dir">agent/</span>
-│   ├── <span class="file">loop.py</span>              <span class="desc"># AgentLoop 核心引擎</span>
-│   ├── <span class="file">context.py</span>           <span class="desc"># ContextBuilder 上下文组装</span>
-│   ├── <span class="file">memory.py</span>            <span class="desc"># MemoryStore 记忆管理</span>
-│   ├── <span class="file">skills.py</span>            <span class="desc"># SkillsLoader 技能加载</span>
-│   ├── <span class="file">subagent.py</span>          <span class="desc"># SubagentManager 子代理</span>
-│   └── <span class="dir">tools/</span>
-│       ├── <span class="file">base.py</span>          <span class="desc"># 工具基类</span>
-│       ├── <span class="file">registry.py</span>      <span class="desc"># ToolRegistry 注册表</span>
-│       ├── <span class="file">filesystem.py</span>    <span class="desc"># 文件操作工具</span>
-│       ├── <span class="file">shell.py</span>         <span class="desc"># Shell 命令执行</span>
-│       ├── <span class="file">web.py</span>           <span class="desc"># 网页搜索/抓取</span>
-│       ├── <span class="file">message.py</span>       <span class="desc"># 消息发送</span>
-│       ├── <span class="file">spawn.py</span>         <span class="desc"># 子代理生成</span>
-│       └── <span class="file">cron.py</span>          <span class="desc"># 定时任务</span>
-│
-├── <span class="dir">channels/</span>
-│   ├── <span class="file">base.py</span>              <span class="desc"># BaseChannel 抽象基类</span>
-│   ├── <span class="file">manager.py</span>           <span class="desc"># ChannelManager</span>
-│   ├── <span class="file">telegram.py</span>          <span class="desc"># Telegram Bot</span>
-│   ├── <span class="file">feishu.py</span>            <span class="desc"># 飞书 WebSocket</span>
-│   ├── <span class="file">dingtalk.py</span>          <span class="desc"># 钉钉 Stream</span>
-│   ├── <span class="file">discord.py</span>           <span class="desc"># Discord Gateway</span>
-│   ├── <span class="file">slack.py</span>             <span class="desc"># Slack Socket Mode</span>
-│   ├── <span class="file">qq.py</span>                <span class="desc"># QQ botpy</span>
-│   ├── <span class="file">whatsapp.py</span>          <span class="desc"># WhatsApp Bridge</span>
-│   ├── <span class="file">email.py</span>             <span class="desc"># Email IMAP+SMTP</span>
-│   └── <span class="file">mochat.py</span>            <span class="desc"># MoChat Socket.IO</span>
-│
-├── <span class="dir">providers/</span>
-│   ├── <span class="file">base.py</span>              <span class="desc"># LLMProvider 抽象基类</span>
-│   ├── <span class="file">registry.py</span>          <span class="desc"># Provider 注册表</span>
-│   ├── <span class="file">litellm_provider.py</span>  <span class="desc"># LiteLLM 统一接口</span>
-│   └── <span class="file">transcription.py</span>     <span class="desc"># 语音转文字</span>
-│
-├── <span class="dir">bus/</span>
-│   ├── <span class="file">events.py</span>            <span class="desc"># 消息数据类</span>
-│   └── <span class="file">queue.py</span>             <span class="desc"># 异步消息总线</span>
-│
-├── <span class="dir">session/</span>
-│   └── <span class="file">manager.py</span>           <span class="desc"># 会话管理 + JSONL 持久化</span>
-│
-├── <span class="dir">cron/</span>
-│   ├── <span class="file">types.py</span>             <span class="desc"># CronJob 数据类型</span>
-│   └── <span class="file">service.py</span>           <span class="desc"># CronService 调度器</span>
-│
-├── <span class="dir">heartbeat/</span>
-│   └── <span class="file">service.py</span>           <span class="desc"># HeartbeatService</span>
-│
-├── <span class="dir">utils/</span>
-│   └── <span class="file">helpers.py</span>           <span class="desc"># 工具函数</span>
-│
-└── <span class="dir">skills/</span>                  <span class="desc"># 内置技能</span>
-    ├── <span class="dir">cron/</span>    └── SKILL.md
-    ├── <span class="dir">github/</span>  └── SKILL.md
-    ├── <span class="dir">memory/</span>  └── SKILL.md
-    ├── <span class="dir">weather/</span> └── SKILL.md
-    └── ...
+<div class="tree-header"><span class="lang">📁 项目结构</span><span>nanobot v0.1.3</span></div>
+<pre><span class="dir">nanobot/</span>
+<span class="connector">├──</span> <span class="file">__init__.py</span>              <span class="desc"># 版本号、Logo</span>
+<span class="connector">├──</span> <span class="file">__main__.py</span>              <span class="desc"># 入口 → cli.commands</span>
+<span class="connector">│</span>
+<span class="connector">├──</span> <span class="dir">cli/</span>
+<span class="connector">│   └──</span> <span class="file">commands.py</span>          <span class="desc"># Typer CLI + prompt_toolkit REPL</span>
+<span class="connector">│</span>
+<span class="connector">├──</span> <span class="dir">config/</span>
+<span class="connector">│   ├──</span> <span class="file">loader.py</span>            <span class="desc"># 加载 config.json</span>
+<span class="connector">│   └──</span> <span class="file">schema.py</span>            <span class="desc"># Pydantic 配置模型</span>
+<span class="connector">│</span>
+<span class="connector">├──</span> <span class="dir">agent/</span>
+<span class="connector">│   ├──</span> <span class="file">loop.py</span>              <span class="desc"># AgentLoop 核心引擎</span>
+<span class="connector">│   ├──</span> <span class="file">context.py</span>           <span class="desc"># ContextBuilder 上下文组装</span>
+<span class="connector">│   ├──</span> <span class="file">memory.py</span>            <span class="desc"># MemoryStore 记忆管理</span>
+<span class="connector">│   ├──</span> <span class="file">skills.py</span>            <span class="desc"># SkillsLoader 技能加载</span>
+<span class="connector">│   ├──</span> <span class="file">subagent.py</span>          <span class="desc"># SubagentManager 子代理</span>
+<span class="connector">│   └──</span> <span class="dir">tools/</span>
+<span class="connector">│       ├──</span> <span class="file">base.py</span>          <span class="desc"># 工具基类</span>
+<span class="connector">│       ├──</span> <span class="file">registry.py</span>      <span class="desc"># ToolRegistry 注册表</span>
+<span class="connector">│       ├──</span> <span class="file">filesystem.py</span>    <span class="desc"># 文件操作工具</span>
+<span class="connector">│       ├──</span> <span class="file">shell.py</span>         <span class="desc"># Shell 命令执行</span>
+<span class="connector">│       ├──</span> <span class="file">web.py</span>           <span class="desc"># 网页搜索/抓取</span>
+<span class="connector">│       ├──</span> <span class="file">message.py</span>       <span class="desc"># 消息发送</span>
+<span class="connector">│       ├──</span> <span class="file">spawn.py</span>         <span class="desc"># 子代理生成</span>
+<span class="connector">│       └──</span> <span class="file">cron.py</span>          <span class="desc"># 定时任务</span>
+<span class="connector">│</span>
+<span class="connector">├──</span> <span class="dir">channels/</span>
+<span class="connector">│   ├──</span> <span class="file">base.py</span>              <span class="desc"># BaseChannel 抽象基类</span>
+<span class="connector">│   ├──</span> <span class="file">manager.py</span>           <span class="desc"># ChannelManager</span>
+<span class="connector">│   ├──</span> <span class="file">telegram.py</span>          <span class="desc"># Telegram Bot</span>
+<span class="connector">│   ├──</span> <span class="file">feishu.py</span>            <span class="desc"># 飞书 WebSocket</span>
+<span class="connector">│   ├──</span> <span class="file">dingtalk.py</span>          <span class="desc"># 钉钉 Stream</span>
+<span class="connector">│   ├──</span> <span class="file">discord.py</span>           <span class="desc"># Discord Gateway</span>
+<span class="connector">│   ├──</span> <span class="file">slack.py</span>             <span class="desc"># Slack Socket Mode</span>
+<span class="connector">│   ├──</span> <span class="file">qq.py</span>                <span class="desc"># QQ botpy</span>
+<span class="connector">│   ├──</span> <span class="file">whatsapp.py</span>          <span class="desc"># WhatsApp Bridge</span>
+<span class="connector">│   ├──</span> <span class="file">email.py</span>             <span class="desc"># Email IMAP+SMTP</span>
+<span class="connector">│   └──</span> <span class="file">mochat.py</span>            <span class="desc"># MoChat Socket.IO</span>
+<span class="connector">│</span>
+<span class="connector">├──</span> <span class="dir">providers/</span>
+<span class="connector">│   ├──</span> <span class="file">base.py</span>              <span class="desc"># LLMProvider 抽象基类</span>
+<span class="connector">│   ├──</span> <span class="file">registry.py</span>          <span class="desc"># Provider 注册表</span>
+<span class="connector">│   ├──</span> <span class="file">litellm_provider.py</span>  <span class="desc"># LiteLLM 统一接口</span>
+<span class="connector">│   └──</span> <span class="file">transcription.py</span>     <span class="desc"># 语音转文字</span>
+<span class="connector">│</span>
+<span class="connector">├──</span> <span class="dir">bus/</span>
+<span class="connector">│   ├──</span> <span class="file">events.py</span>            <span class="desc"># 消息数据类</span>
+<span class="connector">│   └──</span> <span class="file">queue.py</span>             <span class="desc"># 异步消息总线</span>
+<span class="connector">│</span>
+<span class="connector">├──</span> <span class="dir">session/</span>
+<span class="connector">│   └──</span> <span class="file">manager.py</span>           <span class="desc"># 会话管理 + JSONL 持久化</span>
+<span class="connector">│</span>
+<span class="connector">├──</span> <span class="dir">cron/</span>
+<span class="connector">│   ├──</span> <span class="file">types.py</span>             <span class="desc"># CronJob 数据类型</span>
+<span class="connector">│   └──</span> <span class="file">service.py</span>           <span class="desc"># CronService 调度器</span>
+<span class="connector">│</span>
+<span class="connector">├──</span> <span class="dir">heartbeat/</span>
+<span class="connector">│   └──</span> <span class="file">service.py</span>           <span class="desc"># HeartbeatService</span>
+<span class="connector">│</span>
+<span class="connector">├──</span> <span class="dir">utils/</span>
+<span class="connector">│   └──</span> <span class="file">helpers.py</span>           <span class="desc"># 工具函数</span>
+<span class="connector">│</span>
+<span class="connector">└──</span> <span class="dir">skills/</span>                  <span class="desc"># 内置技能</span>
+    <span class="connector">├──</span> <span class="dir">cron/</span>    └── SKILL.md
+    <span class="connector">├──</span> <span class="dir">github/</span>  └── SKILL.md
+    <span class="connector">├──</span> <span class="dir">memory/</span>  └── SKILL.md
+    <span class="connector">├──</span> <span class="dir">weather/</span> └── SKILL.md
+    <span class="connector">└──</span> ...</pre>
 </div>
 
 <!-- 技术栈 -->
@@ -640,6 +656,26 @@ document.querySelectorAll('.sidebar nav a').forEach(a=>{
     document.querySelector('.overlay').classList.remove('show');
   });
 });
+function copyCode(btn){
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent='已复制';
+    btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='复制';btn.classList.remove('copied');},2000);
+  }).catch(()=>{
+    const range=document.createRange();
+    range.selectNodeContents(pre);
+    const sel=window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    document.execCommand('copy');
+    sel.removeAllRanges();
+    btn.textContent='已复制';
+    btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='复制';btn.classList.remove('copied');},2000);
+  });
+}
 </script>
 </body>
 </html>
