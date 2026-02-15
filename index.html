@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NanoBot 🐈 实现原理深度解析</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f1117;--bg2:#161822;--bg3:#1e2030;--text:#c8cad8;--text2:#8890a4;--accent:#60a5fa;--green:#34d399;--orange:#fb923c;--pink:#f472b6;--purple:#a78bfa;--red:#f87171;--yellow:#fbbf24;--border:#2a2d3e}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:16px}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* 侧边导航 */
+.sidebar{position:fixed;left:0;top:0;width:260px;height:100vh;background:var(--bg2);border-right:1px solid var(--border);overflow-y:auto;padding:20px 0;z-index:100}
+.sidebar .logo{padding:0 20px 20px;font-size:22px;font-weight:700;color:#fff;border-bottom:1px solid var(--border)}
+.sidebar .logo span{color:var(--accent)}
+.sidebar nav{padding:15px 0}
+.sidebar nav a{display:block;padding:8px 20px;color:var(--text2);font-size:14px;transition:all .2s}
+.sidebar nav a:hover,.sidebar nav a.active{color:var(--accent);background:rgba(96,165,250,.08);text-decoration:none}
+.sidebar nav a.sub{padding-left:36px;font-size:13px}
+
+/* 主内容 */
+.main{margin-left:260px;padding:40px 50px;max-width:960px}
+.main h1{font-size:32px;color:#fff;margin-bottom:8px}
+.main .subtitle{color:var(--text2);margin-bottom:40px;font-size:15px}
+.main h2{font-size:24px;color:#fff;margin:50px 0 20px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.main h3{font-size:18px;color:var(--accent);margin:30px 0 15px}
+.main p{margin-bottom:14px}
+.main ul,.main ol{margin:0 0 14px 20px}
+.main li{margin-bottom:6px}
+
+/* 代码块 */
+.code-block{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin:14px 0 20px;overflow-x:auto;font-family:'Fira Code',Consolas,monospace;font-size:13.5px;line-height:1.6}
+.code-block .kw{color:var(--purple)}
+.code-block .fn{color:var(--accent)}
+.code-block .str{color:var(--green)}
+.code-block .cmt{color:var(--text2)}
+.code-block .cls{color:var(--yellow)}
+.code-block .op{color:var(--pink)}
+
+/* 标签 */
+.tag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;margin:2px 4px 2px 0}
+.tag-blue{background:rgba(96,165,250,.15);color:var(--accent)}
+.tag-green{background:rgba(52,211,153,.15);color:var(--green)}
+.tag-orange{background:rgba(251,146,60,.15);color:var(--orange)}
+.tag-pink{background:rgba(244,114,182,.15);color:var(--pink)}
+.tag-purple{background:rgba(167,139,250,.15);color:var(--purple)}
+
+/* 表格 */
+table{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:14px}
+th{background:var(--bg3);color:var(--accent);text-align:left;padding:10px 14px;border:1px solid var(--border)}
+td{padding:10px 14px;border:1px solid var(--border)}
+tr:hover td{background:rgba(96,165,250,.04)}
+
+/* 架构图 */
+.arch-diagram{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:30px 20px;margin:20px 0 30px;overflow-x:auto}
+.arch-row{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin:10px 0}
+.arch-box{padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;text-align:center;white-space:nowrap;min-width:80px}
+.arch-box.user{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff}
+.arch-box.channel{background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff}
+.arch-box.bus{background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff}
+.arch-box.agent{background:linear-gradient(135deg,#10b981,#059669);color:#fff;padding:14px 24px;font-size:15px}
+.arch-box.llm{background:linear-gradient(135deg,#ec4899,#db2777);color:#fff}
+.arch-box.tool{background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff}
+.arch-box.memory{background:linear-gradient(135deg,#f97316,#ea580c);color:#fff}
+.arch-box.skill{background:linear-gradient(135deg,#a855f7,#9333ea);color:#fff}
+.arch-arrow{color:var(--text2);font-size:20px;font-weight:700}
+.arch-arrow-down{text-align:center;color:var(--text2);font-size:20px;margin:4px 0}
+.arch-label{font-size:11px;color:var(--text2);text-align:center;margin-top:2px}
+.arch-group{display:flex;flex-direction:column;align-items:center;gap:4px}
+.arch-channels{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.arch-channels .mini{padding:5px 10px;border-radius:6px;font-size:11px;background:rgba(139,92,246,.2);color:var(--purple);border:1px solid rgba(139,92,246,.3)}
+
+/* 流程图 */
+.flow{display:flex;flex-direction:column;gap:0;margin:20px 0}
+.flow-step{display:flex;align-items:flex-start;gap:14px;padding:12px 0}
+.flow-num{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+.flow-content{flex:1}
+.flow-content strong{color:#fff}
+.flow-line{width:32px;display:flex;justify-content:center}
+.flow-line::after{content:'';display:block;width:2px;height:20px;background:var(--border)}
+
+/* 卡片 */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin:14px 0}
+.card-title{color:#fff;font-weight:700;margin-bottom:8px}
+
+/* 树形结构 */
+.tree{font-family:'Fira Code',Consolas,monospace;font-size:13px;line-height:1.8;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:20px;margin:14px 0;overflow-x:auto}
+.tree .dir{color:var(--yellow)}
+.tree .file{color:var(--text)}
+.tree .desc{color:var(--text2)}
+
+/* 手机菜单按钮 */
+.menu-btn{display:none;position:fixed;top:12px;left:12px;z-index:200;width:40px;height:40px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);color:#fff;font-size:20px;cursor:pointer;align-items:center;justify-content:center}
+
+/* 响应式 */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);transition:transform .3s;width:280px}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0;padding:20px 16px;padding-top:60px}
+  .menu-btn{display:flex}
+  .arch-row{gap:4px}
+  .arch-box{padding:7px 12px;font-size:11px;min-width:60px}
+  .main h1{font-size:24px}
+  .main h2{font-size:20px}
+}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
+.overlay.show{display:block}
+
+/* 页脚 */
+footer{margin-top:60px;padding:20px 0;border-top:1px solid var(--border);color:var(--text2);font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+
+<button class="menu-btn" onclick="toggleMenu()">☰</button>
+<div class="overlay" onclick="toggleMenu()"></div>
+
+<aside class="sidebar">
+  <div class="logo">🐈 <span>NanoBot</span> 原理解析</div>
+  <nav>
+    <a href="#overview">架构总览</a>
+    <a href="#bus" class="sub">消息总线</a>
+    <a href="#agent-loop" class="sub">Agent 循环</a>
+    <a href="#context" class="sub">上下文构建</a>
+    <a href="#llm" class="sub">LLM Provider</a>
+    <a href="#channels" class="sub">渠道系统</a>
+    <a href="#tools" class="sub">工具系统</a>
+    <a href="#skills" class="sub">技能系统</a>
+    <a href="#memory" class="sub">记忆系统</a>
+    <a href="#session" class="sub">会话管理</a>
+    <a href="#subagent" class="sub">子代理</a>
+    <a href="#cron" class="sub">定时任务</a>
+    <a href="#heartbeat" class="sub">心跳服务</a>
+    <a href="#config">配置系统</a>
+    <a href="#structure">项目结构</a>
+    <a href="#tech">技术栈</a>
+  </nav>
+</aside>
+
+<main class="main">
+<h1>NanoBot 🐈 实现原理深度解析</h1>
+<p class="subtitle">基于 HKUDS/nanobot 项目源码分析 · 版本 0.1.3 · 轻量级个人 AI 助手框架</p>
+
+<!-- 架构总览 -->
+<h2 id="overview">架构总览</h2>
+<p>NanoBot 采用<strong>消息总线 + Agent 循环</strong>的架构，将渠道接入、LLM 推理、工具执行三者解耦。核心数据流如下：</p>
+
+<div class="arch-diagram">
+  <div class="arch-row">
+    <div class="arch-group">
+      <div class="arch-box user">👤 用户</div>
+    </div>
+    <div class="arch-arrow">⟶</div>
+    <div class="arch-group">
+      <div class="arch-box channel">📡 渠道层</div>
+      <div class="arch-channels">
+        <span class="mini">Telegram</span>
+        <span class="mini">飞书</span>
+        <span class="mini">钉钉</span>
+        <span class="mini">Discord</span>
+        <span class="mini">Slack</span>
+        <span class="mini">QQ</span>
+        <span class="mini">WhatsApp</span>
+        <span class="mini">Email</span>
+      </div>
+    </div>
+    <div class="arch-arrow">⟶</div>
+    <div class="arch-group">
+      <div class="arch-box bus">🚌 消息总线</div>
+      <div class="arch-label">MessageBus</div>
+    </div>
+    <div class="arch-arrow">⟶</div>
+    <div class="arch-group">
+      <div class="arch-box agent">🧠 AgentLoop</div>
+      <div class="arch-label">核心引擎</div>
+    </div>
+  </div>
+  <div class="arch-arrow-down">⟷</div>
+  <div class="arch-row">
+    <div class="arch-group">
+      <div class="arch-box llm">🤖 LLM Provider</div>
+      <div class="arch-label">LiteLLM 统一接口</div>
+    </div>
+    <div style="width:30px"></div>
+    <div class="arch-group">
+      <div class="arch-box tool">🔧 工具系统</div>
+      <div class="arch-label">10 个内置工具</div>
+    </div>
+    <div style="width:30px"></div>
+    <div class="arch-group">
+      <div class="arch-box skill">⚡ 技能系统</div>
+      <div class="arch-label">渐进式加载</div>
+    </div>
+    <div style="width:30px"></div>
+    <div class="arch-group">
+      <div class="arch-box memory">💾 记忆系统</div>
+      <div class="arch-label">两层记忆</div>
+    </div>
+  </div>
+</div>
+
+<p>整个系统的运行流程：用户通过任意渠道发送消息 → 渠道将消息封装为 <code>InboundMessage</code> 投递到消息总线 → AgentLoop 取出消息，构建上下文，调用 LLM → LLM 可能返回工具调用请求 → 执行工具并将结果反馈给 LLM → 循环直到 LLM 返回最终文本响应 → 通过消息总线和渠道回复用户。</p>
+
+<!-- 消息总线 -->
+<h2 id="bus">核心模块解析</h2>
+<h3>2.1 消息总线 (MessageBus)</h3>
+<p>消息总线是整个系统的通信中枢，采用异步队列设计，彻底解耦渠道层和 Agent 层。</p>
+<div class="card">
+  <div class="card-title">核心设计</div>
+  <ul>
+    <li><strong>InboundMessage</strong>：封装用户输入，包含 channel、chat_id、text、attachments 等字段</li>
+    <li><strong>OutboundMessage</strong>：封装 Agent 响应，包含目标 channel、chat_id、text</li>
+    <li>基于 Python <code>asyncio.Queue</code> 实现，天然支持并发</li>
+    <li>按 <code>channel:chat_id</code> 路由消息，确保不同用户/渠道的消息互不干扰</li>
+  </ul>
+</div>
+<div class="code-block">
+<span class="cmt"># bus/events.py</span>
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="cls">InboundMessage</span>:
+    channel: <span class="cls">str</span>          <span class="cmt"># "telegram", "feishu", ...</span>
+    chat_id: <span class="cls">str</span>          <span class="cmt"># 用户/群组标识</span>
+    text: <span class="cls">str</span>             <span class="cmt"># 消息文本</span>
+    attachments: <span class="cls">list</span>     <span class="cmt"># 图片、文件等附件</span>
+    metadata: <span class="cls">dict</span>        <span class="cmt"># 额外元数据</span>
+
+<span class="kw">@dataclass</span>
+<span class="kw">class</span> <span class="cls">OutboundMessage</span>:
+    channel: <span class="cls">str</span>
+    chat_id: <span class="cls">str</span>
+    text: <span class="cls">str</span>
+</div>
+
+<!-- Agent 循环 -->
+<h3 id="agent-loop">2.2 Agent 循环 (AgentLoop)</h3>
+<p>AgentLoop 是 NanoBot 的核心引擎，实现了经典的 <strong>ReAct（Reasoning + Acting）</strong>模式。每条用户消息都会触发一个处理循环。</p>
+
+<div class="flow">
+  <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><strong>接收消息</strong> — 从消息总线取出 InboundMessage</div></div>
+  <div class="flow-line"></div>
+  <div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><strong>加载会话</strong> — SessionManager 按 channel:chat_id 查找/创建会话，加载历史消息</div></div>
+  <div class="flow-line"></div>
+  <div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><strong>构建上下文</strong> — ContextBuilder 组装 system prompt（身份 + 记忆 + 技能 + Bootstrap 文件）</div></div>
+  <div class="flow-line"></div>
+  <div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><strong>调用 LLM</strong> — 通过 LiteLLMProvider 发送消息列表，获取 LLM 响应</div></div>
+  <div class="flow-line"></div>
+  <div class="flow-step"><div class="flow-num">5</div><div class="flow-content"><strong>解析响应</strong> — 如果 LLM 返回 tool_calls，进入工具执行；否则返回文本响应</div></div>
+  <div class="flow-line"></div>
+  <div class="flow-step"><div class="flow-num">6</div><div class="flow-content"><strong>执行工具</strong> — ToolRegistry 查找并执行工具，将结果追加到消息历史</div></div>
+  <div class="flow-line"></div>
+  <div class="flow-step"><div class="flow-num">7</div><div class="flow-content"><strong>循环迭代</strong> — 回到步骤 4，直到 LLM 返回纯文本或达到 max_iterations（默认 20）</div></div>
+  <div class="flow-line"></div>
+  <div class="flow-step"><div class="flow-num">8</div><div class="flow-content"><strong>发送响应</strong> — 将最终文本封装为 OutboundMessage 投递到消息总线</div></div>
+</div>
+
+<div class="code-block">
+<span class="cmt"># agent/loop.py — 核心循环简化版</span>
+<span class="kw">async def</span> <span class="fn">_process_message</span>(self, msg: InboundMessage):
+    session = self.session_mgr.<span class="fn">get_or_create</span>(msg.channel, msg.chat_id)
+    session.<span class="fn">append</span>({<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: msg.text})
+
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="fn">range</span>(self.max_iterations):
+        context = self.context_builder.<span class="fn">build</span>(session)
+        response = <span class="kw">await</span> self.provider.<span class="fn">chat</span>(context)
+
+        <span class="kw">if</span> response.tool_calls:
+            <span class="kw">for</span> tc <span class="kw">in</span> response.tool_calls:
+                result = <span class="kw">await</span> self.tools.<span class="fn">execute</span>(tc.name, tc.args)
+                session.<span class="fn">append</span>({<span class="str">"role"</span>: <span class="str">"tool"</span>, <span class="str">"content"</span>: result})
+        <span class="kw">else</span>:
+            <span class="kw">return</span> response.text  <span class="cmt"># 最终响应</span>
+</div>
+
+<!-- 上下文构建 -->
+<h3 id="context">2.3 上下文构建 (ContextBuilder)</h3>
+<p>ContextBuilder 负责组装发送给 LLM 的 system prompt，这是 NanoBot "人格"和"能力"的核心。</p>
+<div class="card">
+  <div class="card-title">System Prompt 组装顺序</div>
+  <ol>
+    <li><span class="tag tag-blue">Identity</span> 身份定义 — IDENTITY.md 或内置默认身份</li>
+    <li><span class="tag tag-green">Bootstrap</span> 引导文件 — AGENTS.md, SOUL.md, USER.md, TOOLS.md</li>
+    <li><span class="tag tag-orange">Memory</span> 长期记忆 — MEMORY.md 的完整内容</li>
+    <li><span class="tag tag-purple">Skills</span> 技能元数据 — 所有可用技能的 name + description</li>
+    <li><span class="tag tag-pink">Active Skills</span> 已激活技能 — 被触发的技能的 SKILL.md 完整内容</li>
+  </ol>
+</div>
+<p>Bootstrap 文件是可选的自定义文件，放在 workspace 根目录。用户可以通过这些文件定制 Agent 的行为、人格和工具使用偏好，无需修改代码。</p>
+
+<!-- LLM Provider -->
+<h3 id="llm">2.4 LLM Provider 层</h3>
+<p>NanoBot 通过 <strong>LiteLLM</strong> 实现了统一的 LLM 调用接口，支持 11 个 Provider，一套代码对接所有主流大模型。</p>
+
+<table>
+  <tr><th>Provider</th><th>匹配关键词</th><th>类型</th></tr>
+  <tr><td>Anthropic</td><td>anthropic, claude</td><td><span class="tag tag-green">标准</span></td></tr>
+  <tr><td>OpenAI</td><td>openai, gpt</td><td><span class="tag tag-green">标准</span></td></tr>
+  <tr><td>DeepSeek</td><td>deepseek</td><td><span class="tag tag-green">标准</span></td></tr>
+  <tr><td>Gemini</td><td>gemini</td><td><span class="tag tag-green">标准</span></td></tr>
+  <tr><td>通义千问</td><td>qwen, dashscope</td><td><span class="tag tag-green">标准</span></td></tr>
+  <tr><td>智谱 AI</td><td>zhipu, glm</td><td><span class="tag tag-green">标准</span></td></tr>
+  <tr><td>Moonshot</td><td>moonshot, kimi</td><td><span class="tag tag-green">标准</span></td></tr>
+  <tr><td>MiniMax</td><td>minimax</td><td><span class="tag tag-green">标准</span></td></tr>
+  <tr><td>OpenRouter</td><td>openrouter</td><td><span class="tag tag-blue">网关</span></td></tr>
+  <tr><td>AiHubMix</td><td>aihubmix</td><td><span class="tag tag-blue">网关</span></td></tr>
+  <tr><td>vLLM</td><td>vllm</td><td><span class="tag tag-orange">本地</span></td></tr>
+</table>
+
+<div class="card">
+  <div class="card-title">Provider 自动匹配机制</div>
+  <p>配置中只需指定模型名（如 <code>anthropic/claude-opus-4-5</code>），系统会根据模型名中的关键词自动匹配对应的 Provider，拼接正确的 LiteLLM 前缀，并注入 api_key、api_base 等配置。</p>
+</div>
+
+<!-- 渠道系统 -->
+<h3 id="channels">2.5 渠道系统 (Channels)</h3>
+<p>渠道系统采用<strong>策略模式</strong>，所有渠道实现统一的 BaseChannel 接口，由 ChannelManager 统一管理生命周期。</p>
+
+<div class="code-block">
+<span class="cmt"># channels/base.py</span>
+<span class="kw">class</span> <span class="cls">BaseChannel</span>(ABC):
+    <span class="kw">async def</span> <span class="fn">start</span>(self): ...    <span class="cmt"># 启动渠道（建立连接）</span>
+    <span class="kw">async def</span> <span class="fn">stop</span>(self): ...     <span class="cmt"># 停止渠道</span>
+    <span class="kw">async def</span> <span class="fn">send</span>(self, msg): ... <span class="cmt"># 发送消息给用户</span>
+</div>
+
+<table>
+  <tr><th>渠道</th><th>协议</th><th>特点</th></tr>
+  <tr><td>Telegram</td><td>Bot API (长轮询)</td><td>最成熟，支持 proxy</td></tr>
+  <tr><td>飞书</td><td>WebSocket 长连接</td><td>企业级，支持图片识别</td></tr>
+  <tr><td>钉钉</td><td>Stream Mode</td><td>企业级，dingtalk-stream SDK</td></tr>
+  <tr><td>Discord</td><td>Gateway WebSocket</td><td>社区场景</td></tr>
+  <tr><td>Slack</td><td>Socket Mode</td><td>企业协作</td></tr>
+  <tr><td>QQ</td><td>botpy SDK</td><td>国内社交</td></tr>
+  <tr><td>WhatsApp</td><td>WebSocket Bridge</td><td>需要桥接服务</td></tr>
+  <tr><td>Email</td><td>IMAP + SMTP</td><td>异步通信，支持 auto_reply</td></tr>
+  <tr><td>MoChat</td><td>Socket.IO</td><td>自定义聊天</td></tr>
+</table>
+
+<p>所有渠道都支持 <code>allow_from</code> 白名单，只有指定用户/群组的消息才会被处理。ChannelManager 在启动时根据配置文件中 <code>enabled: true</code> 的渠道逐一初始化。</p>
+
+<!-- 工具系统 -->
+<h3 id="tools">2.6 工具系统 (Tools)</h3>
+<p>工具系统让 LLM 能够与外部世界交互。采用<strong>注册表模式</strong>，所有工具继承 BaseTool 并注册到 ToolRegistry。</p>
+
+<table>
+  <tr><th>工具</th><th>模块</th><th>功能</th></tr>
+  <tr><td><code>read_file</code></td><td>filesystem.py</td><td>读取文件内容</td></tr>
+  <tr><td><code>write_file</code></td><td>filesystem.py</td><td>写入文件（自动创建目录）</td></tr>
+  <tr><td><code>edit_file</code></td><td>filesystem.py</td><td>查找替换编辑文件</td></tr>
+  <tr><td><code>list_dir</code></td><td>filesystem.py</td><td>列出目录内容</td></tr>
+  <tr><td><code>exec</code></td><td>shell.py</td><td>执行 shell 命令（可配置 timeout）</td></tr>
+  <tr><td><code>web_search</code></td><td>web.py</td><td>网页搜索（Brave Search API）</td></tr>
+  <tr><td><code>web_fetch</code></td><td>web.py</td><td>抓取网页内容并提取文本</td></tr>
+  <tr><td><code>message</code></td><td>message.py</td><td>发送消息到指定渠道</td></tr>
+  <tr><td><code>spawn</code></td><td>spawn.py</td><td>创建后台子代理</td></tr>
+  <tr><td><code>cron</code></td><td>cron.py</td><td>定时任务管理</td></tr>
+</table>
+
+<div class="card">
+  <div class="card-title">工具调用流程</div>
+  <p>LLM 返回 <code>tool_calls</code> 数组 → ToolRegistry 根据工具名查找对应的 Tool 实例 → 调用 <code>execute(args)</code> → 将执行结果（成功/失败）作为 <code>tool</code> 角色消息追加到会话 → LLM 根据结果继续推理。</p>
+  <p><code>restrict_to_workspace</code> 配置可限制文件操作只能在 workspace 目录内进行，防止越权访问。</p>
+</div>
+
+<!-- 技能系统 -->
+<h3 id="skills">2.7 技能系统 (Skills)</h3>
+<p>技能系统是 NanoBot 的扩展机制，允许通过声明式的 Markdown 文件为 Agent 添加新能力，无需修改代码。</p>
+
+<div class="card">
+  <div class="card-title">三级渐进式加载</div>
+  <p>技能采用按需加载策略，避免一次性将所有技能内容塞入上下文，节省 token：</p>
+  <ol>
+    <li><span class="tag tag-blue">Level 1 — 元数据</span> name + description，始终在 system prompt 中，让 LLM 知道有哪些技能可用</li>
+    <li><span class="tag tag-green">Level 2 — SKILL.md</span> 技能被触发后加载完整说明，包含使用方法、参数、示例</li>
+    <li><span class="tag tag-orange">Level 3 — Resources</span> 按需加载脚本（scripts/）、参考文档（references/）、资源文件（assets/）</li>
+  </ol>
+</div>
+
+<div class="code-block">
+<span class="cmt"># 技能目录结构</span>
+skills/
+├── my-skill/
+│   ├── SKILL.md          <span class="cmt"># 技能说明（必须）</span>
+│   ├── scripts/          <span class="cmt"># 可执行脚本</span>
+│   │   └── run.py
+│   ├── references/       <span class="cmt"># 参考文档</span>
+│   └── assets/           <span class="cmt"># 资源文件</span>
+</div>
+
+<p>技能分为两类：<strong>内置技能</strong>（随 pip 包安装）和 <strong>workspace 自定义技能</strong>（用户创建）。当两者同名时，workspace 技能优先。内置技能包括：</p>
+<ul>
+  <li><span class="tag tag-purple">memory</span> 两层记忆系统（always=true，始终加载）</li>
+  <li><span class="tag tag-purple">cron</span> 定时任务调度</li>
+  <li><span class="tag tag-purple">github</span> GitHub CLI 操作</li>
+  <li><span class="tag tag-purple">skill-creator</span> 创建新技能的指南</li>
+  <li><span class="tag tag-purple">weather</span> 天气查询</li>
+  <li><span class="tag tag-purple">summarize</span> 内容摘要</li>
+  <li><span class="tag tag-purple">tmux</span> 终端会话控制</li>
+</ul>
+
+<!-- 记忆系统 -->
+<h3 id="memory">2.8 记忆系统 (Memory)</h3>
+<p>记忆系统让 Agent 具备跨会话的持久记忆能力，采用<strong>两层设计</strong>：</p>
+
+<div class="arch-diagram" style="padding:20px">
+  <div class="arch-row">
+    <div class="arch-group">
+      <div class="arch-box memory" style="min-width:200px">📋 MEMORY.md<br><small>长期事实</small></div>
+      <div class="arch-label">始终加载到 system prompt</div>
+      <div class="arch-label">用户偏好、项目上下文、关键配置</div>
+    </div>
+    <div style="width:40px"></div>
+    <div class="arch-group">
+      <div class="arch-box tool" style="min-width:200px">📜 HISTORY.md<br><small>事件日志</small></div>
+      <div class="arch-label">Append-only，不加载到上下文</div>
+      <div class="arch-label">通过 grep 按需搜索</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">自动整理机制</div>
+  <p>当会话历史过长时，系统会自动触发整理：</p>
+  <ul>
+    <li>将旧对话摘要追加到 HISTORY.md（事件日志）</li>
+    <li>从对话中提取关键事实写入 MEMORY.md（长期记忆）</li>
+    <li>清理会话历史，释放上下文窗口</li>
+  </ul>
+  <p>这种设计让 Agent 既能记住重要信息，又不会因为历史过长而超出 token 限制。</p>
+</div>
+
+<!-- 会话管理 -->
+<h3 id="session">2.9 会话管理 (Session)</h3>
+<p>SessionManager 负责管理所有活跃会话，每个 <code>channel:chat_id</code> 组合对应一个独立会话。</p>
+<div class="card">
+  <div class="card-title">核心特性</div>
+  <ul>
+    <li><strong>隔离性</strong>：不同用户、不同渠道的会话完全隔离</li>
+    <li><strong>持久化</strong>：会话以 JSONL 格式存储，重启后自动恢复</li>
+    <li><strong>窗口控制</strong>：<code>memory_window</code> 参数控制发送给 LLM 的历史消息数量（默认 50 条）</li>
+    <li><strong>自动清理</strong>：超出窗口的旧消息会被摘要后归档</li>
+  </ul>
+</div>
+
+<!-- 子代理 -->
+<h3 id="subagent">2.10 子代理 (Subagent)</h3>
+<p>子代理机制允许 Agent 将耗时任务委托给后台异步执行，不阻塞主对话。</p>
+
+<div class="flow">
+  <div class="flow-step"><div class="flow-num">1</div><div class="flow-content"><strong>spawn</strong> — 主 Agent 通过 spawn 工具创建子代理，指定任务描述</div></div>
+  <div class="flow-line"></div>
+  <div class="flow-step"><div class="flow-num">2</div><div class="flow-content"><strong>异步执行</strong> — SubagentManager 在后台启动独立的 AgentLoop 处理任务</div></div>
+  <div class="flow-line"></div>
+  <div class="flow-step"><div class="flow-num">3</div><div class="flow-content"><strong>结果回报</strong> — 子代理完成后，通过 system channel 将结果注入主会话</div></div>
+  <div class="flow-line"></div>
+  <div class="flow-step"><div class="flow-num">4</div><div class="flow-content"><strong>主 Agent 处理</strong> — 主 Agent 收到子代理结果，继续与用户对话</div></div>
+</div>
+
+<p>子代理拥有与主 Agent 相同的工具和能力，但运行在独立的上下文中。适合处理数据收集、文件生成、部署等耗时操作。</p>
+
+<!-- 定时任务 -->
+<h3 id="cron">2.11 定时任务 (CronService)</h3>
+<p>CronService 提供三种调度模式，让 Agent 能够在指定时间自动执行任务。</p>
+
+<table>
+  <tr><th>模式</th><th>参数</th><th>示例</th><th>用途</th></tr>
+  <tr><td><span class="tag tag-blue">at</span></td><td>ISO 时间</td><td><code>2026-02-15T09:00:00</code></td><td>一次性定时任务</td></tr>
+  <tr><td><span class="tag tag-green">every</span></td><td>秒数</td><td><code>3600</code>（每小时）</td><td>固定间隔重复</td></tr>
+  <tr><td><span class="tag tag-orange">cron</span></td><td>cron 表达式</td><td><code>0 9 * * *</code>（每天9点）</td><td>灵活的周期调度</td></tr>
+</table>
+
+<div class="card">
+  <div class="card-title">实现细节</div>
+  <ul>
+    <li>CronJob 持久化存储，重启后自动恢复</li>
+    <li>使用 <code>croniter</code> 库解析 cron 表达式</li>
+    <li>到时间后触发 Agent 处理，Agent 收到提醒消息后执行预设操作</li>
+    <li>支持 add / list / remove 操作管理任务</li>
+  </ul>
+</div>
+
+<!-- 心跳服务 -->
+<h3 id="heartbeat">2.12 心跳服务 (Heartbeat)</h3>
+<p>HeartbeatService 定期唤醒 Agent，检查 workspace 中的 <code>HEARTBEAT.md</code> 文件。如果文件存在且包含任务描述，Agent 会自动执行这些任务。这为无人值守的自动化场景提供了支持。</p>
+
+<!-- 配置系统 -->
+<h2 id="config">配置系统</h2>
+<p>NanoBot 使用 <strong>Pydantic</strong> 模型进行配置验证，所有配置集中在 <code>~/.nanobot/config.json</code>。</p>
+
+<div class="code-block">
+{
+  <span class="str">"providers"</span>: {           <span class="cmt">// LLM 提供商配置</span>
+    <span class="str">"anthropic"</span>: {
+      <span class="str">"api_key"</span>: <span class="str">"sk-..."</span>,
+      <span class="str">"api_base"</span>: <span class="str">"https://..."</span>  <span class="cmt">// 可选，自定义端点</span>
+    }
+  },
+  <span class="str">"agents"</span>: {
+    <span class="str">"defaults"</span>: {
+      <span class="str">"model"</span>: <span class="str">"anthropic/claude-opus-4-5"</span>,
+      <span class="str">"max_tokens"</span>: <span class="cls">8192</span>,
+      <span class="str">"temperature"</span>: <span class="cls">0.7</span>,
+      <span class="str">"max_tool_iterations"</span>: <span class="cls">20</span>,
+      <span class="str">"memory_window"</span>: <span class="cls">50</span>
+    }
+  },
+  <span class="str">"channels"</span>: {             <span class="cmt">// 渠道配置（按需启用）</span>
+    <span class="str">"feishu"</span>: { <span class="str">"enabled"</span>: <span class="cls">true</span>, <span class="str">"app_id"</span>: <span class="str">"..."</span>, <span class="str">"app_secret"</span>: <span class="str">"..."</span> },
+    <span class="str">"telegram"</span>: { <span class="str">"enabled"</span>: <span class="cls">false</span>, <span class="str">"token"</span>: <span class="str">"..."</span> }
+  },
+  <span class="str">"tools"</span>: {
+    <span class="str">"exec"</span>: { <span class="str">"timeout"</span>: <span class="cls">60</span> },
+    <span class="str">"restrict_to_workspace"</span>: <span class="cls">false</span>
+  }
+}
+</div>
+
+<p>支持环境变量覆盖：使用 <code>NANOBOT_</code> 前缀 + <code>__</code> 嵌套分隔符。例如 <code>NANOBOT_CHANNELS__FEISHU__ENABLED=true</code>。</p>
+
+<!-- 项目结构 -->
+<h2 id="structure">项目结构</h2>
+<div class="tree">
+<span class="dir">nanobot/</span>
+├── <span class="file">__init__.py</span>              <span class="desc"># 版本号、Logo</span>
+├── <span class="file">__main__.py</span>              <span class="desc"># 入口 → cli.commands</span>
+│
+├── <span class="dir">cli/</span>
+│   └── <span class="file">commands.py</span>          <span class="desc"># Typer CLI + prompt_toolkit REPL</span>
+│
+├── <span class="dir">config/</span>
+│   ├── <span class="file">loader.py</span>            <span class="desc"># 加载 config.json</span>
+│   └── <span class="file">schema.py</span>            <span class="desc"># Pydantic 配置模型</span>
+│
+├── <span class="dir">agent/</span>
+│   ├── <span class="file">loop.py</span>              <span class="desc"># AgentLoop 核心引擎</span>
+│   ├── <span class="file">context.py</span>           <span class="desc"># ContextBuilder 上下文组装</span>
+│   ├── <span class="file">memory.py</span>            <span class="desc"># MemoryStore 记忆管理</span>
+│   ├── <span class="file">skills.py</span>            <span class="desc"># SkillsLoader 技能加载</span>
+│   ├── <span class="file">subagent.py</span>          <span class="desc"># SubagentManager 子代理</span>
+│   └── <span class="dir">tools/</span>
+│       ├── <span class="file">base.py</span>          <span class="desc"># 工具基类</span>
+│       ├── <span class="file">registry.py</span>      <span class="desc"># ToolRegistry 注册表</span>
+│       ├── <span class="file">filesystem.py</span>    <span class="desc"># 文件操作工具</span>
+│       ├── <span class="file">shell.py</span>         <span class="desc"># Shell 命令执行</span>
+│       ├── <span class="file">web.py</span>           <span class="desc"># 网页搜索/抓取</span>
+│       ├── <span class="file">message.py</span>       <span class="desc"># 消息发送</span>
+│       ├── <span class="file">spawn.py</span>         <span class="desc"># 子代理生成</span>
+│       └── <span class="file">cron.py</span>          <span class="desc"># 定时任务</span>
+│
+├── <span class="dir">channels/</span>
+│   ├── <span class="file">base.py</span>              <span class="desc"># BaseChannel 抽象基类</span>
+│   ├── <span class="file">manager.py</span>           <span class="desc"># ChannelManager</span>
+│   ├── <span class="file">telegram.py</span>          <span class="desc"># Telegram Bot</span>
+│   ├── <span class="file">feishu.py</span>            <span class="desc"># 飞书 WebSocket</span>
+│   ├── <span class="file">dingtalk.py</span>          <span class="desc"># 钉钉 Stream</span>
+│   ├── <span class="file">discord.py</span>           <span class="desc"># Discord Gateway</span>
+│   ├── <span class="file">slack.py</span>             <span class="desc"># Slack Socket Mode</span>
+│   ├── <span class="file">qq.py</span>                <span class="desc"># QQ botpy</span>
+│   ├── <span class="file">whatsapp.py</span>          <span class="desc"># WhatsApp Bridge</span>
+│   ├── <span class="file">email.py</span>             <span class="desc"># Email IMAP+SMTP</span>
+│   └── <span class="file">mochat.py</span>            <span class="desc"># MoChat Socket.IO</span>
+│
+├── <span class="dir">providers/</span>
+│   ├── <span class="file">base.py</span>              <span class="desc"># LLMProvider 抽象基类</span>
+│   ├── <span class="file">registry.py</span>          <span class="desc"># Provider 注册表</span>
+│   ├── <span class="file">litellm_provider.py</span>  <span class="desc"># LiteLLM 统一接口</span>
+│   └── <span class="file">transcription.py</span>     <span class="desc"># 语音转文字</span>
+│
+├── <span class="dir">bus/</span>
+│   ├── <span class="file">events.py</span>            <span class="desc"># 消息数据类</span>
+│   └── <span class="file">queue.py</span>             <span class="desc"># 异步消息总线</span>
+│
+├── <span class="dir">session/</span>
+│   └── <span class="file">manager.py</span>           <span class="desc"># 会话管理 + JSONL 持久化</span>
+│
+├── <span class="dir">cron/</span>
+│   ├── <span class="file">types.py</span>             <span class="desc"># CronJob 数据类型</span>
+│   └── <span class="file">service.py</span>           <span class="desc"># CronService 调度器</span>
+│
+├── <span class="dir">heartbeat/</span>
+│   └── <span class="file">service.py</span>           <span class="desc"># HeartbeatService</span>
+│
+├── <span class="dir">utils/</span>
+│   └── <span class="file">helpers.py</span>           <span class="desc"># 工具函数</span>
+│
+└── <span class="dir">skills/</span>                  <span class="desc"># 内置技能</span>
+    ├── <span class="dir">cron/</span>    └── SKILL.md
+    ├── <span class="dir">github/</span>  └── SKILL.md
+    ├── <span class="dir">memory/</span>  └── SKILL.md
+    ├── <span class="dir">weather/</span> └── SKILL.md
+    └── ...
+</div>
+
+<!-- 技术栈 -->
+<h2 id="tech">技术栈</h2>
+<table>
+  <tr><th>类别</th><th>技术</th><th>用途</th></tr>
+  <tr><td>LLM 接口</td><td>LiteLLM</td><td>统一多 Provider 调用</td></tr>
+  <tr><td>配置管理</td><td>Pydantic + pydantic-settings</td><td>类型安全的配置验证</td></tr>
+  <tr><td>CLI</td><td>Typer + Rich</td><td>命令行界面 + 美化输出</td></tr>
+  <tr><td>交互式终端</td><td>prompt-toolkit</td><td>REPL 交互</td></tr>
+  <tr><td>HTTP 客户端</td><td>httpx</td><td>异步 HTTP 请求</td></tr>
+  <tr><td>日志</td><td>loguru</td><td>结构化日志</td></tr>
+  <tr><td>定时调度</td><td>croniter</td><td>cron 表达式解析</td></tr>
+  <tr><td>网页提取</td><td>readability-lxml</td><td>网页正文提取</td></tr>
+  <tr><td>序列化</td><td>msgpack</td><td>高效二进制序列化</td></tr>
+  <tr><td>异步框架</td><td>asyncio</td><td>全异步架构</td></tr>
+</table>
+
+<div class="card">
+  <div class="card-title">渠道 SDK 依赖</div>
+  <p>
+    <span class="tag tag-purple">python-telegram-bot</span>
+    <span class="tag tag-purple">lark-oapi</span>
+    <span class="tag tag-purple">dingtalk-stream</span>
+    <span class="tag tag-purple">slack-sdk</span>
+    <span class="tag tag-purple">discord.py</span>
+    <span class="tag tag-purple">qq-botpy</span>
+    <span class="tag tag-purple">python-socketio</span>
+    <span class="tag tag-purple">websockets</span>
+  </p>
+</div>
+
+<footer>
+  基于 <a href="https://github.com/HKUDS/nanobot" target="_blank">HKUDS/nanobot</a> 项目源码分析 · 版本 0.1.3 · MIT License
+</footer>
+
+</main>
+
+<script>
+function toggleMenu(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.querySelector('.overlay').classList.toggle('show');
+}
+document.querySelectorAll('.sidebar nav a').forEach(a=>{
+  a.addEventListener('click',()=>{
+    document.querySelector('.sidebar').classList.remove('open');
+    document.querySelector('.overlay').classList.remove('show');
+  });
+});
+</script>
+</body>
+</html>
